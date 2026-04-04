@@ -282,3 +282,58 @@ def _get_tier_info(current_tier: str, total_spend: float):
         "spend_to_next_tier": max(0, spend_to_next),
         "progress_percent": progress,
     }
+
+
+
+@router.get("/{user_id}")
+def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    """Get user by ID for user dashboard."""
+    from app.models.users import User
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "id": user.id,
+        "full_name": user.full_name,
+        "email": user.email,
+        "phone_number": user.phone_number,
+        "location": user.location,
+        "age": user.age,
+        "sex": user.sex,
+        "role": "user",  # Default role
+        "loyalty_points": user.loyalty_points or 0,
+        "total_bookings": user.total_bookings or 0,
+        "total_spent_etb": user.total_spent_etb or 0,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
+
+
+@router.get("/list")
+def get_all_users_list(db: Session = Depends(get_db)):
+    """Get all users for admin user management page."""
+    from app.models.users import User
+    
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    
+    result = []
+    for user in users:
+        result.append({
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "phone_number": user.phone_number,
+            "location": user.location,
+            "age": user.age,
+            "sex": user.sex,
+            "role": "user",  # Default role
+            "is_active": user.is_active,
+            "total_bookings": user.total_bookings or 0,
+            "total_spent_etb": user.total_spent_etb or 0,
+            "loyalty_points": user.loyalty_points or 0,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        })
+    
+    return result

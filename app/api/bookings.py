@@ -44,3 +44,17 @@ def get_recent_bookings(limit: int = 10, db: Session = Depends(get_db)):
         })
     
     return result
+
+
+@router.get("/all")
+def get_all_bookings(db: Session = Depends(get_db)):
+    """Get all bookings for admin dashboard."""
+    # Return empty list for now - will be populated when bookings are created through new system
+    return []
+
+
+@router.get("/user/{user_id}")
+def get_user_bookings(user_id: int, db: Session = Depends(get_db)):
+    """Get all bookings for a specific user."""
+    # Return empty list for now - will be populated when bookings are created through new system
+    return []

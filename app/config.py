@@ -11,11 +11,6 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     RESORT_NAME: str = "Kuriftu Resort and Spa"
     RESORT_TOTAL_ROOMS: int = 120
-    
-    # Production settings
-    ENVIRONMENT: str = "development"
-    SECRET_KEY: str = "dev-secret-key-change-in-production"
-    ALLOWED_ORIGINS: str = "*"
 
     # Room type configuration
     ROOM_TYPES: dict = {
