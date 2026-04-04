@@ -8,7 +8,7 @@ load_dotenv()
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./kuraz.db"
-    GEMINI_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
     RESORT_NAME: str = "Kuriftu Resort and Spa"
     RESORT_TOTAL_ROOMS: int = 120
 

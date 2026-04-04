@@ -13,7 +13,7 @@ from app.schemas.packages import (
     PackageRecommendationRequest, PackageRecommendationResponse,
 )
 from pydantic import BaseModel
-from app.engine.gemini import generate_package_with_gemini
+from app.engine.groq_ai import generate_package_with_ai
 
 class GeneratePackageRequest(BaseModel):
     target_audience: str
@@ -105,9 +105,9 @@ def get_package_performance(db: Session = Depends(get_db)):
 
 @router.post("/generate")
 def generate_ai_package(request: GeneratePackageRequest, db: Session = Depends(get_db)):
-    """Use Gemini AI to dynamically create a new package based on a prompt."""
+    """Use AI (Groq/Llama) to dynamically create a new package based on a prompt."""
     try:
-        data = generate_package_with_gemini(request.target_audience)
+        data = generate_package_with_ai(request.target_audience)
         
         # Save to DB
         new_pkg = Package(

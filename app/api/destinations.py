@@ -280,6 +280,8 @@ def get_available_packages(
 @router.post("/book", response_model=BookingResponse)
 def create_booking(booking: BookingRequest, db: Session = Depends(get_db)):
     """Create a new booking"""
+    from app.models.bookings import Booking, Guest, BookingStatus, BookingChannel, GuestSegment
+    from app.models.rooms import RoomType
     
     # Get destination
     destination = db.query(Destination).filter(
@@ -333,8 +335,67 @@ def create_booking(booking: BookingRequest, db: Session = Depends(get_db)):
     # Generate booking code
     booking_code = "KRZ-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
     
-    # Create booking record (simplified - using existing Booking model structure)
-    # Note: You may need to adapt this to match your exact Booking model fields
+    # Find or create guest
+    guest_names = booking.guest_name.split(" ", 1)
+    first_name = guest_names[0]
+    last_name = guest_names[1] if len(guest_names) > 1 else ""
+    
+    guest = db.query(Guest).filter(Guest.email == booking.guest_email).first()
+    if not guest:
+        guest = Guest(
+            first_name=first_name,
+            last_name=last_name,
+            email=booking.guest_email,
+            phone=booking.guest_phone,
+            segment=GuestSegment.DOMESTIC_WEEKEND
+        )
+        db.add(guest)
+        db.flush()
+    
+    # Find user by email to link booking
+    user = db.query(User).filter(User.email == booking.guest_email).first()
+    user_id = user.id if user else None
+    
+    # Get room_type_id from room_types table
+    room_type_obj = db.query(RoomType).filter(RoomType.name == room.room_type).first()
+    room_type_id = room_type_obj.id if room_type_obj else 1  # Default to 1 if not found
+    
+    # Calculate lead time
+    lead_time_days = (check_in_date - datetime.now()).days
+    
+    # Create booking record
+    new_booking = Booking(
+        booking_ref=booking_code,
+        user_id=user_id,
+        guest_id=guest.id,
+        room_type_id=room_type_id,
+        check_in=check_in_date.date(),
+        check_out=check_out_date.date(),
+        nights=nights,
+        booking_date=datetime.now(),
+        lead_time_days=max(0, lead_time_days),
+        adults=booking.adults,
+        children=booking.children,
+        fare_class="standard",
+        rate_etb=price_calc["optimized_rate_etb"],
+        total_room_revenue_etb=room_total,
+        total_package_revenue_etb=packages_total,
+        total_revenue_etb=total_amount,
+        channel=BookingChannel.DIRECT,
+        status=BookingStatus.CONFIRMED,
+        ai_segment=GuestSegment.DOMESTIC_WEEKEND
+    )
+    
+    db.add(new_booking)
+    
+    # Update user stats if user exists
+    if user:
+        user.total_bookings = (user.total_bookings or 0) + 1
+        user.total_spent_etb = (user.total_spent_etb or 0) + int(total_amount)
+        user.loyalty_points = (user.loyalty_points or 0) + int(total_amount / 10)  # 1 point per 10 ETB
+    
+    db.commit()
+    db.refresh(new_booking)
     
     return {
         "booking_code": booking_code,

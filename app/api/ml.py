@@ -1,5 +1,5 @@
 """
-API Routes — ML training, forecasting, and Gemini LLM natural language interface.
+API Routes — ML training, forecasting, and AI LLM natural language interface.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -56,7 +56,7 @@ def get_demand_forecast(
     }
 
 
-# ==================== GEMINI LLM INTERFACE ====================
+# ==================== AI LLM INTERFACE (Groq/Llama) ====================
 
 class NLQueryRequest(BaseModel):
     query: str
@@ -66,29 +66,29 @@ class NLQueryRequest(BaseModel):
 def ask_revenue_ai(request: NLQueryRequest, db: Session = Depends(get_db)):
     """
     Natural language interface to the revenue management engine.
-    Powered by Google Gemini. Ask questions like:
+    Powered by Groq (Llama 3.1 70B). Ask questions like:
     - "What happens if I block 20 rooms for a tour group next weekend?"
     - "Should I run a promotion for next Friday?"
     - "Why did the AI increase prices for Saturday?"
     """
-    if not settings.GEMINI_API_KEY or settings.GEMINI_API_KEY == "your_gemini_api_key_here":
+    if not settings.GROQ_API_KEY or settings.GROQ_API_KEY == "your_groq_api_key_here":
         return {
             "answer": (
-                "Gemini API key not configured. Add GEMINI_API_KEY to your .env file. "
-                "Get a free key at https://aistudio.google.com/apikey"
+                "Groq API key not configured. Add GROQ_API_KEY to your .env file. "
+                "Get a free key at https://console.groq.com/keys (Free tier: 30 requests/min)"
             ),
             "source": "system",
         }
 
     try:
-        import google.generativeai as genai
+        from groq import Groq
         from app.engine.pricing import PricingEngine
         from app.models.rooms import RoomType, DailyInventory
         from app.models.bookings import Booking, BookingStatus
 
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        client = Groq(api_key=settings.GROQ_API_KEY)
 
-        # Build context snapshot for Gemini
+        # Build context snapshot for AI
         today = date.today()
         room_types = db.query(RoomType).all()
 
@@ -137,13 +137,27 @@ Keep your answer under 150 words. Use ETB for currency.
 QUESTION: {request.query}
 """
 
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        response = model.generate_content(context)
-        answer = response.text.strip()
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert revenue management AI assistant for Ethiopian hospitality. Provide specific, actionable advice with numbers."
+                },
+                {
+                    "role": "user",
+                    "content": context
+                }
+            ],
+            model="llama-3.1-70b-versatile",
+            temperature=0.7,
+            max_tokens=500,
+        )
+        
+        answer = chat_completion.choices[0].message.content.strip()
 
         return {
             "answer": answer,
-            "source": "gemini-2.0-flash",
+            "source": "groq-llama-3.1-70b",
             "context_snapshot": {
                 "date": today.isoformat(),
                 "occupancy": occ_summary,
@@ -154,6 +168,6 @@ QUESTION: {request.query}
 
     except Exception as e:
         return {
-            "answer": f"AI query failed: {str(e)}",
+            "answer": f"AI query failed: {str(e)}. Make sure GROQ_API_KEY is set correctly in .env",
             "source": "error",
         }

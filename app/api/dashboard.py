@@ -14,7 +14,7 @@ from app.models.bookings import Booking, Guest, BookingStatus
 from app.models.packages import Package
 from app.config import get_settings
 from app.data.ethiopian_calendar import get_ethiopian_holidays
-from app.engine.gemini import generate_market_insights_with_gemini
+from app.engine.groq_ai import generate_market_insights_with_ai
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 settings = get_settings()
@@ -343,11 +343,11 @@ def get_pricing_heatmap(
 
 @router.get("/analyze-pricing")
 def analyze_pricing_data_with_ai(db: Session = Depends(get_db)):
-    """Passes the upcoming 30 day heatmap matrix to Gemini and asks for strategic insights."""
+    """Passes the upcoming 30 day heatmap matrix to AI and asks for strategic insights."""
     heatmap_data = get_pricing_heatmap(start_date=date.today(), end_date=date.today() + timedelta(days=14), db=db)
     
     try:
-        insight_text = generate_market_insights_with_gemini(heatmap_data)
+        insight_text = generate_market_insights_with_ai(heatmap_data)
         return {"insight": insight_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

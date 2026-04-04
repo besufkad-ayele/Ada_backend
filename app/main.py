@@ -24,6 +24,7 @@ from app.api import (
     users_router,
     destinations_router,
 )
+from app.api.airline_pricing import router as airline_pricing_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -80,6 +81,7 @@ app.include_router(bookings_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(destinations_router)
+app.include_router(airline_pricing_router)  # New airline-style pricing
 
 
 @app.get("/", tags=["Health"])
