@@ -40,8 +40,12 @@ async def lifespan(app: FastAPI):
     print(f"   Rooms: {settings.RESORT_TOTAL_ROOMS}")
     print("=" * 60)
 
-    init_db()
-    print("✅ Database initialized")
+    try:
+        init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Database initialization warning: {e}")
+        print("   Server will continue, database will initialize on first request")
 
     yield
 
